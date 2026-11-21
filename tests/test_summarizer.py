@@ -125,3 +125,37 @@ def test_abstractive_generates_text(method):
     result = summarize(SAMPLE, method=method, model="t5-small", max_length=60, num_beams=2)
     assert 5 < len(result.text.split()) < len(SAMPLE.split())
     assert result.text[0].isupper()
+
+
+# --- CLI argument validation ----------------------------------------------
+import cli  # noqa: E402
+
+
+@pytest.mark.parametrize("flags", [["-n", "0"], ["-n", "-3"], ["-r", "0"], ["-r", "1.5"],
+                                   ["-r", "-0.2"], ["--beams", "0"]])
+def test_cli_rejects_out_of_range_lengths(flags, capsys):
+    with pytest.raises(SystemExit) as exc:
+        cli.main([str(ROOT / "samples" / "urban_heat_islands.txt"), *flags])
+    assert exc.value.code == 2
+    assert "must be" in capsys.readouterr().err
+
+
+def test_cli_rejects_empty_document(tmp_path, capsys):
+    empty = tmp_path / "empty.txt"
+    empty.write_text("   \n")
+    with pytest.raises(SystemExit) as exc:
+        cli.main([str(empty)])
+    assert exc.value.code == 2
+    assert "document is empty" in capsys.readouterr().err
+
+
+def test_cli_rejects_min_length_above_max_length(capsys):
+    with pytest.raises(SystemExit):
+        cli.main([str(ROOT / "samples" / "urban_heat_islands.txt"), "-m", "abstractive",
+                  "--min-length", "200", "--max-length", "100"])
+    assert "cannot exceed" in capsys.readouterr().err
+
+
+def test_cli_accepts_valid_lengths(capsys):
+    assert cli.main([str(ROOT / "samples" / "urban_heat_islands.txt"), "-n", "2"]) == 0
+    assert "=== TEXTRANK ===" in capsys.readouterr().out

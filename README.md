@@ -118,11 +118,12 @@ This scores every method on 100 articles taken at an even stride across the CNN/
 pytest -q
 ```
 
-There are 18 tests. They cover:
+There are 27 tests. They cover:
 
 - sentence splitting edge cases (abbreviations, initials, decimals, headings);
 - each extractive algorithm and the redundancy filter;
 - the metrics and the file loaders;
+- CLI argument validation (out-of-range lengths, empty documents);
 - the abstractive and hybrid paths, which run only when T5-small is downloaded.
 
 ## Project structure

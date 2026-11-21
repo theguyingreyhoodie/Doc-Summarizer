@@ -22,22 +22,40 @@ from summarizer.metrics import rouge
 from summarizer.preprocess import word_count
 
 
+def positive_int(value: str) -> int:
+    n = int(value)
+    if n < 1:
+        raise argparse.ArgumentTypeError(f"must be at least 1, got {n}")
+    return n
+
+
+def unit_ratio(value: str) -> float:
+    r = float(value)
+    if not 0 < r <= 1:
+        raise argparse.ArgumentTypeError(f"must be in (0, 1], got {r}")
+    return r
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Summarise a document (.txt, .md, .pdf, .docx).")
     parser.add_argument("path", help="document to summarise, or '-' to read stdin")
     parser.add_argument("-m", "--method", default="textrank", choices=[*ALL_METHODS, "all"])
     length = parser.add_mutually_exclusive_group()
-    length.add_argument("-n", "--sentences", type=int, help="extractive: number of sentences")
-    length.add_argument("-r", "--ratio", type=float, default=0.2,
+    length.add_argument("-n", "--sentences", type=positive_int, help="extractive: number of sentences")
+    length.add_argument("-r", "--ratio", type=unit_ratio, default=0.2,
                         help="extractive: fraction of sentences to keep (default 0.2)")
     parser.add_argument("--model", default=DEFAULT_MODEL, choices=list(MODELS))
-    parser.add_argument("--max-length", type=int, default=142, help="abstractive: max tokens")
-    parser.add_argument("--min-length", type=int, default=30, help="abstractive: min tokens")
-    parser.add_argument("--beams", type=int, default=4, help="abstractive: beam width")
+    parser.add_argument("--max-length", type=positive_int, default=142, help="abstractive: max tokens")
+    parser.add_argument("--min-length", type=positive_int, default=30, help="abstractive: min tokens")
+    parser.add_argument("--beams", type=positive_int, default=4, help="abstractive: beam width")
     parser.add_argument("--reference", help="reference summary file, to report ROUGE scores")
     args = parser.parse_args(argv)
 
     text = sys.stdin.read() if args.path == "-" else load_document(args.path)
+    if not text.strip():
+        parser.error(f"{args.path}: document is empty (no extractable text)")
+    if args.min_length > args.max_length:
+        parser.error(f"--min-length ({args.min_length}) cannot exceed --max-length ({args.max_length})")
     reference = load_document(args.reference) if args.reference else None
     print(f"Document: {word_count(text)} words\n")
 
