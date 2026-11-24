@@ -201,7 +201,7 @@ def get_extractive(name: str, **kwargs) -> BaseExtractiveSummarizer:
     try:
         return EXTRACTIVE_METHODS[name](**kwargs)
     except KeyError:
-        raise ValueError(f"Unknown extractive method {name!r}; choose from {list(EXTRACTIVE_METHODS)}")
+        raise ValueError(f"Unknown extractive method {name!r}; choose from {list(EXTRACTIVE_METHODS)}") from None
 
 
 def _similarity_matrix(sentences: list[str]) -> np.ndarray:
